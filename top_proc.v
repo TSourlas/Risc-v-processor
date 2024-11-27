@@ -28,6 +28,14 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
         ALUOP_ASR = 4'b1010,
         ALUOP_XOR = 4'b0101;
 
+    //OPCODES FROM RISC-V INSTRUCTIONS
+    parameter [6:0] 
+    OPCODE_LW     = 7'b0000011, // Load instruction
+    OPCODE_I_TYPE = 7'b0010011, // Immediate arithmetic
+    OPCODE_S_TYPE = 7'b0100011, // Store
+    OPCODE_B_TYPE = 7'b1100011; // Branch
+
+
     // Instantiate Datapath
     datapath #(.INITIAL_PC(INITIAL_PC)) DATAPATH (
         .clk(clk),
@@ -55,6 +63,11 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
 
     reg [2:0] next_state; // Define next_state as a register
 
+    wire [6:0] opcode = instr[6:0];
+    wire [2:0] funct3 = instr[14:12];
+    wire [6:0] funct7 = instr[31:25];
+
+
     // Aποθήκευση της κατάστασης (ακολουθιακή λογική)
     always @(posedge clk or posedge rst) begin
         if (rst)
@@ -69,7 +82,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             IF: next_state = ID; // Μετάβαση από Instruction Fetch σε Instruction Decode
             ID: next_state = EX; // Μετάβαση από Decode σε Execute (ανεξάρτητα από τον τύπο της εντολής)
             EX: begin
-                if (instr[6:0] == 7'b0000011 || instr[6:0] == 7'b0100011) // Load or Store εντολές
+                if (opcode == OPCODE_LW || opcode == 7'OPCODE_S_TYPE) // Load or Store εντολές
                     next_state = MEM;  // Μετάβαση στο Memory Access για Load/Store
                 else
                     next_state = WB;   // Άλλες εντολές πάνε απευθείας στο Write Back
@@ -90,7 +103,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
         MemtoReg = 0;
         loadPC = 0;
         PCSrc = 0;
-        ALUCtrl = ALUOP_AND; // Default value for ALU Control
+
 
         case (current_state)
             IF: begin
@@ -99,20 +112,20 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             end
             ID: begin
                 // Στη φάση ID, γίνεται αποκωδικοποίηση της εντολής
-                case (instr[6:0])
-                    7'b0000011: begin // Load εντολές
+                case (opcode)
+                    OPCODE_LW: begin // Load εντολές
                         ALUSrc = 1; // Χρήση immediate
                         MemtoReg = 1;
                         ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
                     end
-                    7'b0100011: begin // Store εντολές
+                    7'OPCODE_S_TYPE: begin // Store εντολές
                         ALUSrc = 1; // Χρήση immediate
                         MemWrite = 1; // Ενεργοποίηση εγγραφής στη μνήμη
                         ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
                     end
                     7'b0110011: begin // R-type εντολές
                         RegWrite = 1; // Ενεργοποίηση εγγραφής σε καταχωρητή
-                        case ({instr[31:25], instr[14:12]})
+                        case ({funct7, funct3})
                             10'b0000000_000: ALUCtrl = ALUOP_ADD; // ADD
                             10'b0100000_000: ALUCtrl = ALUOP_SUB; // SUB
                             10'b0000000_111: ALUCtrl = ALUOP_AND; // AND
@@ -125,10 +138,10 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                             default: ALUCtrl = ALUOP_AND; // Default or NO OP
                         endcase
                     end
-                    7'b0010011: begin // I-type εντολές
+                    7'OPCODE_I_TYPE: begin // I-type εντολές
                         ALUSrc = 1; // Χρήση immediate
                         RegWrite = 1; // Ενεργοποίηση εγγραφής σε καταχωρητή
-                        case (instr[14:12])
+                        case (funct3)
                             3'b000: ALUCtrl = ALUOP_ADD; // ADDI
                             3'b010: ALUCtrl = ALUOP_SLT; // SLTI
                             3'b100: ALUCtrl = ALUOP_XOR; // XORI
@@ -136,9 +149,9 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                             3'b111: ALUCtrl = ALUOP_AND; // ANDI
                             3'b001: ALUCtrl = ALUOP_LSL; // SLLI
                             3'b101: begin
-                                if (instr[31:25] == 7'b0000000)
+                                if (funct7 == 7'b0000000)
                                     ALUCtrl = ALUOP_LSR; // SRLI
-                                else if (instr[31:25] == 7'b0100000)
+                                else if (funct7 == 7'b0100000)
                                     ALUCtrl = ALUOP_ASR; // SRAI
                             end
                             default: ALUCtrl = ALUOP_AND; // Default or NO OP
@@ -149,19 +162,22 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             end
             EX: begin
                 // Στη φάση EX, εκτελούμε την πράξη στην ALU
-                if (instr[6:0] == 7'b1100011) begin // BEQ εντολές (Branch)
+                if (opcode == 7'OPCODE_B_TYPE) begin // BEQ εντολές (Branch)
                     if (zero) begin
                         PCSrc = 1; // Αν το αποτέλεσμα της ALU είναι 0, κάνουμε branch
                     end
                 end
             end
             MEM: begin
-                if (instr[6:0] == 7'b0000011) // Load εντολές
+                if (opcode == OPCODE_LW) // Load εντολές
                     MemRead = 1; // Ενεργοποίηση ανάγνωσης από τη μνήμη
-            end
+                 end else if (opcode == OPCODE_S_TYPE) begin
+                     MemWrite = 1; // Ενεργοποίηση εγγραφής στη μνήμη για Store
+                 end
             WB: begin
-                if (instr[6:0] == 7'b0000011) // Load εντολές
+                if (opcode == OPCODE_LW) // Load εντολές
                     RegWrite = 1; // Επιστροφή δεδομένων σε καταχωρητή
+                    loadPC   = 1;
             end
         endcase
     end
