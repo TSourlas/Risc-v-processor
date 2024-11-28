@@ -33,7 +33,8 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     OPCODE_LW     = 7'b0000011, // Load instruction
     OPCODE_I_TYPE = 7'b0010011, // Immediate arithmetic
     OPCODE_S_TYPE = 7'b0100011, // Store
-    OPCODE_B_TYPE = 7'b1100011; // Branch
+    OPCODE_B_TYPE = 7'b1100011, // Branch
+    OPCODE_R_TYPE = 7'b0110011; // R-type
 
 
     // Instantiate Datapath
@@ -51,6 +52,22 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
         .RegWrite(RegWrite),
         .PCSrc(PCSrc),
         .loadPC(loadPC)
+    );
+
+     // Instantiate Instruction Memory (ROM)
+    INSTRUCTION_MEMORY ROM (
+        .clk(clk),
+        .addr(PC[8:0]),  // The lower 9 bits of the PC address
+        .dout(instr)  // Instruction output
+    );
+
+    // Instantiate Data Memory (RAM)
+    DATA_MEMORY RAM (
+        .clk(clk),
+        .we(MemWrite),  // Memory write enable
+        .addr(dAddress[8:0]),  // Address for data memory
+        .din(dWriteData),  // Data to be written to memory
+        .dout(dReadData)  // Data read from memory
     );
 
     // State Definitions using parameter for better readability
@@ -82,7 +99,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             IF: next_state = ID; // Μετάβαση από Instruction Fetch σε Instruction Decode
             ID: next_state = EX; // Μετάβαση από Decode σε Execute (ανεξάρτητα από τον τύπο της εντολής)
             EX: begin
-                if (opcode == OPCODE_LW || opcode == 7'OPCODE_S_TYPE) // Load or Store εντολές
+                if (opcode == OPCODE_LW || opcode == OPCODE_S_TYPE) // Load or Store εντολές
                     next_state = MEM;  // Μετάβαση στο Memory Access για Load/Store
                 else
                     next_state = WB;   // Άλλες εντολές πάνε απευθείας στο Write Back
@@ -108,7 +125,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
         case (current_state)
             IF: begin
                 // Στη φάση IF, διαβάζουμε την εντολή από τη μνήμη
-                loadPC = 1; // Ενεργοποίηση σήματος για φόρτωση του PC
+                loadPC = 0; // Ενεργοποίηση σήματος για φόρτωση του PC
             end
             ID: begin
                 // Στη φάση ID, γίνεται αποκωδικοποίηση της εντολής
@@ -118,12 +135,12 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                         MemtoReg = 1;
                         ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
                     end
-                    7'OPCODE_S_TYPE: begin // Store εντολές
+                    OPCODE_S_TYPE: begin // Store εντολές
                         ALUSrc = 1; // Χρήση immediate
                         MemWrite = 1; // Ενεργοποίηση εγγραφής στη μνήμη
                         ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
                     end
-                    7'b0110011: begin // R-type εντολές
+                    OPCODE_R_TYPE: begin // R-type εντολές
                         RegWrite = 1; // Ενεργοποίηση εγγραφής σε καταχωρητή
                         case ({funct7, funct3})
                             10'b0000000_000: ALUCtrl = ALUOP_ADD; // ADD
@@ -138,7 +155,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                             default: ALUCtrl = ALUOP_AND; // Default or NO OP
                         endcase
                     end
-                    7'OPCODE_I_TYPE: begin // I-type εντολές
+                    OPCODE_I_TYPE: begin // I-type εντολές
                         ALUSrc = 1; // Χρήση immediate
                         RegWrite = 1; // Ενεργοποίηση εγγραφής σε καταχωρητή
                         case (funct3)
@@ -160,20 +177,43 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                     // Προσθέστε κι άλλες εντολές αν χρειάζεται
                 endcase
             end
-            EX: begin
-                // Στη φάση EX, εκτελούμε την πράξη στην ALU
-                if (opcode == 7'OPCODE_B_TYPE) begin // BEQ εντολές (Branch)
-                    if (zero) begin
-                        PCSrc = 1; // Αν το αποτέλεσμα της ALU είναι 0, κάνουμε branch
+           EX: begin
+                        // ALU operations or branching
+                case (opcode)
+                    OPCODE_B_TYPE: begin // BEQ (Branch Equal)
+                        if (zero) begin
+                            PCSrc = 1'b1;  // Branch, use PC + branch_offset
+                        end
                     end
-                end
+                    OPCODE_LW: begin // Load (LW)
+                        ALUSrc = 1'b1; // Use immediate for ALU
+                        MemWrite = 1'b1; // Write to memory
+                    end
+                    OPCODE_S_TYPE: begin // Store (SW)
+                        ALUSrc = 1'b1; // Use immediate for ALU
+                        MemWrite = 1'b1; // Write to memory
+                    end
+                    OPCODE_I_TYPE: begin // I-type ALU operations
+                        ALUSrc = 1'b1; // Use immediate for ALU
+                        MemtoReg = 1'b1; // Choose dAddress over dReadData for dWrite
+                        RegWrite = 1'b1; // Write result to register
+                    end
+                    OPCODE_R_TYPE: begin // R-type ALU operations
+                        RegWrite = 1'b1; // Write result to register
+                        MemtoReg = 1'b1; // Choose dAddress over dReadData for dWrite
+                    end
+                    default: begin
+                        // No operation by default
+                    end
+                endcase
             end
             MEM: begin
-                if (opcode == OPCODE_LW) // Load εντολές
-                    MemRead = 1; // Ενεργοποίηση ανάγνωσης από τη μνήμη
-                 end else if (opcode == OPCODE_S_TYPE) begin
-                     MemWrite = 1; // Ενεργοποίηση εγγραφής στη μνήμη για Store
-                 end
+                if (opcode == OPCODE_LW) begin // Load instructions
+                    MemRead = 1; // Enable memory read for load
+                end else if (opcode == OPCODE_S_TYPE) begin // Store instructions
+                    MemWrite = 1; // Enable memory write for store
+                end
+            end
             WB: begin
                 if (opcode == OPCODE_LW) // Load εντολές
                     RegWrite = 1; // Επιστροφή δεδομένων σε καταχωρητή
