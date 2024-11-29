@@ -112,20 +112,17 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
 
     // Λογική Εξόδων (Συνδυαστική Λογική)
     always @(*) begin
-        // Default values for control signals
-        MemRead = 0;
-        MemWrite = 0;
-        RegWrite = 0;
-        ALUSrc = 0;
-        MemtoReg = 0;
-        loadPC = 0;
-        PCSrc = 0;
-
-
+        
         case (current_state)
             IF: begin
-                // Στη φάση IF, διαβάζουμε την εντολή από τη μνήμη
-                loadPC = 0; // Ενεργοποίηση σήματος για φόρτωση του PC
+                // Default values for control signals (IF is default case)
+                MemRead = 0;
+                MemWrite = 0;
+                RegWrite = 0;
+                ALUSrc = 0;
+                MemtoReg = 0;
+                loadPC = 0;
+                PCSrc = 0;
             end
             ID: begin
                 // Στη φάση ID, γίνεται αποκωδικοποίηση της εντολής
@@ -178,7 +175,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                 endcase
             end
            EX: begin
-                        // ALU operations or branching
+                // ALU operations or branching
                 case (opcode)
                     OPCODE_B_TYPE: begin // BEQ (Branch Equal)
                         if (zero) begin
