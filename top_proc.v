@@ -14,7 +14,8 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
 );
 
     // Signals from datapath
-    reg PCSrc, loadPC, RegWrite, ALUSrc, MemtoReg, zero;
+    reg PCSrc, loadPC, RegWrite, ALUSrc, MemtoReg;
+    wire zero;
 
     // ALU Control Parameters
     parameter [3:0]
@@ -51,7 +52,8 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
         .MemtoReg(MemtoReg),
         .RegWrite(RegWrite),
         .PCSrc(PCSrc),
-        .loadPC(loadPC)
+        .loadPC(loadPC),
+        .zero(zero)
     );
 
      // Instantiate Instruction Memory (ROM)
