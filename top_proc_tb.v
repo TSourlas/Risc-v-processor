@@ -35,6 +35,10 @@ module top_proc_tb;
         clk = 0;
         rst = 0;
         dReadData = 32'b0;
+
+        rst = 1;
+        #10
+        rst = 0;
         
         // Enable waveform dumping to a file
         $dumpfile("testbench.vcd");  // Specifies the VCD file name

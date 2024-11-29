@@ -2,7 +2,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     input clk,
     input rst,
     input [31:0] instr,
-    input [31:0] dReadData, 
+    input [31:0] dReadData,
     output [31:0] PC,
     output [31:0] dAddress,
     output [31:0] dWriteData,
@@ -17,7 +17,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     reg PCSrc, loadPC, RegWrite, ALUSrc, MemtoReg, zero;
 
     // ALU Control Parameters
-    parameter [3:0] 
+    parameter [3:0]
         ALUOP_AND = 4'b0000,
         ALUOP_OR  = 4'b0001,
         ALUOP_ADD = 4'b0010,
@@ -29,7 +29,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
         ALUOP_XOR = 4'b0101;
 
     //OPCODES FROM RISC-V INSTRUCTIONS
-    parameter [6:0] 
+    parameter [6:0]
     OPCODE_LW     = 7'b0000011, // Load instruction
     OPCODE_I_TYPE = 7'b0010011, // Immediate arithmetic
     OPCODE_S_TYPE = 7'b0100011, // Store
@@ -71,7 +71,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     );
 
     // State Definitions using parameter for better readability
-    parameter [2:0] 
+    parameter [2:0]
         IF  = 3'b000,  // Instruction Fetch
         ID  = 3'b001,  // Instruction Decode
         EX  = 3'b010,  // Execute
@@ -112,7 +112,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
 
     // Λογική Εξόδων (Συνδυαστική Λογική)
     always @(*) begin
-        
+
         case (current_state)
             IF: begin
                 // Default values for control signals (IF is default case)
@@ -128,17 +128,12 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                 // Στη φάση ID, γίνεται αποκωδικοποίηση της εντολής
                 case (opcode)
                     OPCODE_LW: begin // Load εντολές
-                        ALUSrc = 1; // Χρήση immediate
-                        MemtoReg = 1;
                         ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
                     end
                     OPCODE_S_TYPE: begin // Store εντολές
-                        ALUSrc = 1; // Χρήση immediate
-                        MemWrite = 1; // Ενεργοποίηση εγγραφής στη μνήμη
                         ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
                     end
                     OPCODE_R_TYPE: begin // R-type εντολές
-                        RegWrite = 1; // Ενεργοποίηση εγγραφής σε καταχωρητή
                         case ({funct7, funct3})
                             10'b0000000_000: ALUCtrl = ALUOP_ADD; // ADD
                             10'b0100000_000: ALUCtrl = ALUOP_SUB; // SUB
@@ -153,8 +148,6 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                         endcase
                     end
                     OPCODE_I_TYPE: begin // I-type εντολές
-                        ALUSrc = 1; // Χρήση immediate
-                        RegWrite = 1; // Ενεργοποίηση εγγραφής σε καταχωρητή
                         case (funct3)
                             3'b000: ALUCtrl = ALUOP_ADD; // ADDI
                             3'b010: ALUCtrl = ALUOP_SLT; // SLTI
@@ -171,7 +164,9 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                             default: ALUCtrl = ALUOP_AND; // Default or NO OP
                         endcase
                     end
-                    // Προσθέστε κι άλλες εντολές αν χρειάζεται
+                    OPCODE_B_TYPE: begin
+                        ALUCtrl = ALUOP_SUB; // sub για BEQ
+                    end
                 endcase
             end
            EX: begin
@@ -184,20 +179,15 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                     end
                     OPCODE_LW: begin // Load (LW)
                         ALUSrc = 1'b1; // Use immediate for ALU
-                        MemWrite = 1'b1; // Write to memory
+                        MemtoReg = 1'b1; // Choose dAddress over dReadData for dWrite
                     end
                     OPCODE_S_TYPE: begin // Store (SW)
                         ALUSrc = 1'b1; // Use immediate for ALU
-                        MemWrite = 1'b1; // Write to memory
                     end
                     OPCODE_I_TYPE: begin // I-type ALU operations
                         ALUSrc = 1'b1; // Use immediate for ALU
-                        MemtoReg = 1'b1; // Choose dAddress over dReadData for dWrite
-                        RegWrite = 1'b1; // Write result to register
                     end
                     OPCODE_R_TYPE: begin // R-type ALU operations
-                        RegWrite = 1'b1; // Write result to register
-                        MemtoReg = 1'b1; // Choose dAddress over dReadData for dWrite
                     end
                     default: begin
                         // No operation by default
@@ -212,9 +202,9 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                 end
             end
             WB: begin
+                loadPC   = 1;
                 if (opcode == OPCODE_LW) // Load εντολές
                     RegWrite = 1; // Επιστροφή δεδομένων σε καταχωρητή
-                    loadPC   = 1;
             end
         endcase
     end
