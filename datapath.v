@@ -10,7 +10,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
     input loadPC,
     output reg [31:0] PC,
     output zero,
-    output [31:0] dAddress,
+    output reg [31:0] dAddress,
     output [31:0] dWriteData,
     input [31:0] dReadData,
     output [31:0] WriteBackData
@@ -22,7 +22,8 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
         wire [31:0] selected_imm;  // 32-bit wire to hold the selected immediate value (`imm_I`, `imm_B`, or `imm_S`)
         wire [31:0] readData1, readData2;  // 32-bit wires to hold the data read from the two source registers (`readData1` and `readData2`)
         wire [31:0] imm_I, imm_B, imm_S;  // 32-bit wires to hold different types of immediate values decoded from the instruction
-
+        wire [31:0] op2;
+        wire [31:0] ALU_result;
         // Register File Instantiation
         regfile #(.DATAWIDTH(DATAWIDTH)) rf (
             .clk(clk),
@@ -37,10 +38,10 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
 
         // ALU Instantiation
         alu ALU(
-            .op1(op1),
+            .op1(readData1),
             .op2(op2),
             .alu_op(ALUCtrl),
-            .result(dAddress),
+            .result(ALU_result),
             .zero(zero) 
         );
 
@@ -52,10 +53,8 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
     
         wire [6:0] opcode = instr[6:0]; // Extract opcode
 
-        wire [31:0] op2 = (ALUSrc) ? selected_imm : readData2; // ALU second operand
-
-        // Define op1 based on whether the instruction is LW
-        wire [31:0] op1 = (opcode == OPCODE_LW | opcode == OPCODE_S_TYPE) ? readReg1 : readData1;
+        // // ayth thn pipa tin egrapse to gpt
+        // wire [31:0] op1 = (opcode == OPCODE_LW | opcode == OPCODE_S_TYPE) ? readReg1 : readData1;
     
         initial begin
             PC = INITIAL_PC;
@@ -80,8 +79,10 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
 
         assign branch_offset = imm_B;        
 
-        
-        assign dWriteData = (opcode == OPCODE_S_TYPE) ? readData2 : ((MemtoReg) ? dAddress : readData1);
+        assign op2 = (ALUSrc) ? selected_imm : readData2; // ALU second operand  
+        //kai ayti tin pipa tin egrapse to gpt
+        //assign dWriteData = (opcode == OPCODE_S_TYPE) ? readData2 : ((MemtoReg) ? dAddress : readData1);
+        assign dWriteData = (MemtoReg) ? dReadData : ALU_result; 
         assign WriteBackData = dWriteData;
 
         always @(posedge clk or posedge rst) begin

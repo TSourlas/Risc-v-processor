@@ -14,7 +14,7 @@ module top_proc_tb;
     top_proc uut (
         .clk(clk),
         .rst(rst),
-        .instr(instr),  // Instruction will come from ROM
+        .instr(instr),
         .dReadData(dReadData),
         .PC(PC),
         .dAddress(dAddress),
