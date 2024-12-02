@@ -16,6 +16,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     // Signals from datapath
     reg PCSrc, loadPC, RegWrite, ALUSrc, MemtoReg;
     wire zero;
+    // wire [8:0] addr;
 
     // ALU Control Parameters
     parameter [3:0]
@@ -67,7 +68,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     DATA_MEMORY RAM (
         .clk(clk),
         .we(MemWrite),  // Memory write enable
-        .addr(dAddress[8:0]),  // Address for data memory
+        .addr(dAddress),  // Address for data memory
         .din(dWriteData),  // Data to be written to memory
         .dout(dReadData)  // Data read from memory
     );

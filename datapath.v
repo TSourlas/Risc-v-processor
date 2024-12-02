@@ -10,7 +10,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
     input loadPC,
     output reg [31:0] PC,
     output zero,
-    output reg [31:0] dAddress,
+    output wire [31:0] dAddress,
     output [31:0] dWriteData,
     input [31:0] dReadData,
     output [31:0] WriteBackData
@@ -23,14 +23,14 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
         wire [31:0] readData1, readData2;  // 32-bit wires to hold the data read from the two source registers (`readData1` and `readData2`)
         wire [31:0] imm_I, imm_B, imm_S;  // 32-bit wires to hold different types of immediate values decoded from the instruction
         wire [31:0] op2;
-        wire [31:0] ALU_result;
+
         // Register File Instantiation
         regfile #(.DATAWIDTH(DATAWIDTH)) rf (
             .clk(clk),
             .readReg1(readReg1),
             .readReg2(readReg2),
             .writeReg(writeReg),
-            .writeData(dWriteData), 
+            .writeData(WriteBackData), 
             .write(RegWrite),
             .readData1(readData1),
             .readData2(readData2)
@@ -41,7 +41,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
             .op1(readData1),
             .op2(op2),
             .alu_op(ALUCtrl),
-            .result(ALU_result),
+            .result(dAddress),
             .zero(zero) 
         );
 
@@ -82,7 +82,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
         assign op2 = (ALUSrc) ? selected_imm : readData2; // ALU second operand  
         //kai ayti tin pipa tin egrapse to gpt
         //assign dWriteData = (opcode == OPCODE_S_TYPE) ? readData2 : ((MemtoReg) ? dAddress : readData1);
-        assign dWriteData = (MemtoReg) ? dReadData : ALU_result; 
+        assign dWriteData = (MemtoReg) ? dReadData : dAddress; 
         assign WriteBackData = dWriteData;
 
         always @(posedge clk or posedge rst) begin

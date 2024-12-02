@@ -20,13 +20,23 @@ module regfile #(parameter DATAWIDTH = 32)(
   end
   
   // Sequential block for reading and writing registers
-  always @(*) begin
-    // Read data from the register file
-    readData1 <= registers[readReg1];
-    readData2 <= registers[readReg2];
+  always @(posedge clk) begin
+    // Write to the register if 'write' is asserted
+    if (write) begin
+        registers[writeReg] = writeData;
+    end
     
-    // Write data to the register file
-    if (write)
-      registers[writeReg] <= writeData;
+    // Priority given to the write operation if it's the same register
+    if (readReg1 == writeReg) begin
+        readData1 = writeData;  // Read the written data if the register is the same
+    end else begin
+        readData1 = registers[readReg1];  // Otherwise, read from the register
+    end
+    
+    if (readReg2 == writeReg) begin
+        readData2 = writeData;  // Read the written data if the register is the same
+    end else begin
+        readData2 = registers[readReg2];  // Otherwise, read from the register
+    end
   end
 endmodule
