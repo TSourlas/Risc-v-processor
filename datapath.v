@@ -87,9 +87,9 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
 
         always @(posedge clk or posedge rst) begin
             // Write data back to memory
-            if (RegWrite) begin
-                rf.registers[writeReg] = WriteBackData;
-            end
+            // if (RegWrite) begin
+            //     rf.registers[writeReg] = WriteBackData;
+            // end
 
             if (loadPC) begin
                 PC = (PCSrc) ? (PC + branch_offset) : (PC + 32'd4); // Update PC

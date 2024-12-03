@@ -68,7 +68,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     DATA_MEMORY RAM (
         .clk(clk),
         .we(MemWrite),  // Memory write enable
-        .addr(dAddress),  // Address for data memory
+        .addr(dAddress[8:0]),  // Address for data memory
         .din(dWriteData),  // Data to be written to memory
         .dout(dReadData)  // Data read from memory
     );
@@ -206,8 +206,8 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             end
             WB: begin
                 loadPC   = 1;
-                if (opcode == OPCODE_LW) // Load εντολές
-                    RegWrite = 1; // Επιστροφή δεδομένων σε καταχωρητή
+                // if (opcode == OPCODE_LW) // Load εντολές
+                RegWrite = 1; // Επιστροφή δεδομένων σε καταχωρητή
             end
         endcase
     end
