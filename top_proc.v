@@ -114,7 +114,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     end
 
     // Λογική Εξόδων (Συνδυαστική Λογική)
-    always @(*) begin
+    always @(posedge clk) begin
 
         case (current_state)
             IF: begin

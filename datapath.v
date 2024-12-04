@@ -77,7 +77,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
                             (opcode == OPCODE_B_TYPE) ? imm_B:
                             imm_I;
 
-        assign branch_offset = imm_B;        
+        assign branch_offset = imm_B + 32'd4;   //na tsekaristei ayto to kolpo me to +4  
 
         assign op2 = (ALUSrc) ? selected_imm : readData2; // ALU second operand  
         //kai ayti tin pipa tin egrapse to gpt
