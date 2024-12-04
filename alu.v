@@ -24,11 +24,11 @@ module alu(
             ALUOP_OR: res = op1 | op2;
             ALUOP_ADD: res = op1 + op2;
             ALUOP_SUB: res = op1 - op2;
-      		ALUOP_SLT: res = ($signed(op1) < $signed(op2)) ? 32'd1 : 32'd0;
+      		  ALUOP_SLT: res = ($signed(op1) < $signed(op2)) ? 32'd1 : 32'd0;
       	    ALUOP_LSR: res = op1 >> op2[4:0];
             ALUOP_LSL: res = op1 << op2[4:0];
-      		ALUOP_ASR: res = ($signed(op1)) >>> op2[4:0];
-      		ALUOP_XOR: res = op1 ^ op2;
+      		  ALUOP_ASR: res = ($signed(op1)) >>> op2[4:0];
+      		  ALUOP_XOR: res = op1 ^ op2;
             default: res = 32'd0;
         endcase
     end

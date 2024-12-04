@@ -78,19 +78,11 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
                             imm_I;
 
         assign branch_offset = imm_B + 32'd4;   //na tsekaristei ayto to kolpo me to +4  
-
         assign op2 = (ALUSrc) ? selected_imm : readData2; // ALU second operand  
-        //kai ayti tin pipa tin egrapse to gpt
-        //assign dWriteData = (opcode == OPCODE_S_TYPE) ? readData2 : ((MemtoReg) ? dAddress : readData1);
         assign dWriteData = (MemtoReg) ? dReadData : dAddress; 
         assign WriteBackData = dWriteData;
 
         always @(posedge clk or posedge rst) begin
-            // Write data back to memory
-            // if (RegWrite) begin
-            //     rf.registers[writeReg] = WriteBackData;
-            // end
-
             if (loadPC) begin
                 PC = (PCSrc) ? (PC + branch_offset) : (PC + 32'd4); // Update PC
             end else if (rst) begin
