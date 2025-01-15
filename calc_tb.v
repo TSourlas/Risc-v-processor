@@ -54,7 +54,7 @@ module calc_tb();
     sw = 16'h354a;  // Input switches
     btnd = 1;  // Apply ALU operation
     #10 btnd = 0; // Release the button
-    #10; // Wait to apply next operation
+    #20; // Wait to apply next operation
     $display("ADD: Expected: 0x354a, Got: %h", led);
     
     // Test case 2: SUB operation (0,1,1) - 0x354a - 0x1234 -> Expected 0x2316

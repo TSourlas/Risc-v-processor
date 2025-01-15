@@ -52,10 +52,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
         localparam OPCODE_B_TYPE = 7'b1100011; // Branch
     
         wire [6:0] opcode = instr[6:0]; // Extract opcode
-
-        // // ayth thn pipa tin egrapse to gpt
-        // wire [31:0] op1 = (opcode == OPCODE_LW | opcode == OPCODE_S_TYPE) ? readReg1 : readData1;
-    
+        
         initial begin
             PC = INITIAL_PC;
         end
@@ -77,7 +74,7 @@ module datapath #(parameter INITIAL_PC = 32'h00400000, parameter DATAWIDTH = 32)
                             (opcode == OPCODE_B_TYPE) ? imm_B:
                             imm_I;
 
-        assign branch_offset = imm_B + 32'd4;   //na tsekaristei ayto to kolpo me to +4  
+        assign branch_offset = imm_B + 32'd4;
         assign op2 = (ALUSrc) ? selected_imm : readData2; // ALU second operand  
         assign dWriteData = (MemtoReg) ? dReadData : dAddress; 
         assign WriteBackData = dWriteData;

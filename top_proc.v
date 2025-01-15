@@ -88,7 +88,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
     wire [6:0] funct7 = instr[31:25];
 
 
-    // Aποθήκευση της κατάστασης (ακολουθιακή λογική)
+    // Aποθήκευση της κατάστασης
     always @(posedge clk or posedge rst) begin
         if (rst)
             current_state <= IF; // On reset, set current_state to IF
@@ -96,24 +96,24 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             current_state <= next_state; // On clock edge, move to the next state
     end
 
-    // Λογική Επόμενης Κατάστασης (Συνδυαστική Λογική)
+    // Λογική Επόμενης Κατάστασης
     always @(*) begin
         case (current_state)
-            IF: next_state = ID; // Μετάβαση από Instruction Fetch σε Instruction Decode
-            ID: next_state = EX; // Μετάβαση από Decode σε Execute (ανεξάρτητα από τον τύπο της εντολής)
+            IF: next_state = ID;
+            ID: next_state = EX;
             EX: begin
-                if (opcode == OPCODE_LW || opcode == OPCODE_S_TYPE) // Load or Store εντολές
-                    next_state = MEM;  // Μετάβαση στο Memory Access για Load/Store
+                if (opcode == OPCODE_LW || opcode == OPCODE_S_TYPE)
+                    next_state = MEM;  
                 else
-                    next_state = WB;   // Άλλες εντολές πάνε απευθείας στο Write Back
+                    next_state = WB;   
             end
-            MEM: next_state = WB; // Μετάβαση από Memory Access στο Write Back
-            WB: next_state = IF;  // Μετάβαση από Write Back στην Instruction Fetch
-            default: next_state = IF; // Κατάσταση προεπιλογής
+            MEM: next_state = WB; 
+            WB: next_state = IF; 
+            default: next_state = IF; 
         endcase
     end
 
-    // Λογική Εξόδων (Συνδυαστική Λογική)
+    // Λογική Εξόδων
     always @(posedge clk) begin
 
         case (current_state)
@@ -128,15 +128,14 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                 PCSrc = 0;
             end
             ID: begin
-                // Στη φάση ID, γίνεται αποκωδικοποίηση της εντολής
                 case (opcode)
                     OPCODE_LW: begin // Load εντολές
-                        ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
+                        ALUCtrl = ALUOP_ADD; 
                     end
                     OPCODE_S_TYPE: begin // Store εντολές
-                        ALUCtrl = ALUOP_ADD; // ADD για υπολογισμό διεύθυνσης
+                        ALUCtrl = ALUOP_ADD;
                     end
-                    OPCODE_R_TYPE: begin // R-type εντολές
+                    OPCODE_R_TYPE: begin // R-type instructions
                         case ({funct7, funct3})
                             10'b0000000_000: ALUCtrl = ALUOP_ADD; // ADD
                             10'b0100000_000: ALUCtrl = ALUOP_SUB; // SUB
@@ -150,7 +149,7 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
                             default: ALUCtrl = ALUOP_AND; // Default or NO OP
                         endcase
                     end
-                    OPCODE_I_TYPE: begin // I-type εντολές
+                    OPCODE_I_TYPE: begin // I-type instructions
                         case (funct3)
                             3'b000: ALUCtrl = ALUOP_ADD; // ADDI
                             3'b010: ALUCtrl = ALUOP_SLT; // SLTI
@@ -206,8 +205,8 @@ module top_proc #(parameter INITIAL_PC = 32'h00400000)(
             end
             WB: begin
                 loadPC   = 1;
-                // if (opcode == OPCODE_LW) // Load εντολές
-                RegWrite = 1; // Επιστροφή δεδομένων σε καταχωρητή
+                // if (opcode == OPCODE_LW) // Load instructions
+                RegWrite = 1; 
             end
         endcase
     end

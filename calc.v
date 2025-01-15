@@ -30,12 +30,12 @@ module calc(
     .result(alu_result)
     );
   
-  always @(posedge clk) begin
-    if (btnu == 1)
-      accumulator <= 16'b0;
-  
-  	if(btnd==1)
-    	accumulator <= alu_result[15:0];
+  always @(posedge clk) begin  
+    if (btnu == 1) begin
+          accumulator <= 16'b0; // Reset accumulator when `btnu` is pressed
+    end else if (btnd == 1) begin
+          accumulator <= alu_result[15:0]; // Update accumulator when `btnd` is pressed
+    end
   end
   
   assign led = accumulator;
